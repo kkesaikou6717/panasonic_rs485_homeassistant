@@ -1,0 +1,59 @@
+{
+  "config": {
+    "title": "新风系统",
+    "step": {
+      "user": {
+        "title": "新风系统配置",
+        "description": "请输入Modbus网关信息",
+        "data": {
+          "host": "网关地址",
+          "port": "端口",
+          "slave": "设备地址"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip": "无效的IP地址",
+      "connection_failed": "无法连接到Modbus网关"
+    }
+  },
+  "entity": {
+    "climate": {
+      "fresh_air": {
+        "name": "新风系统"
+      }
+    },
+    "sensor": {
+      "temp_oa": {
+        "name": "室外新风温度"
+      },
+      "humidity_oa": {
+        "name": "室外新风湿度"
+      },
+      "pm25_oa": {
+        "name": "室外新风PM2.5"
+      },
+      "temp_sa": {
+        "name": "送风温度"
+      },
+      "pm25_sa": {
+        "name": "送风PM2.5"
+      },
+      "temp_ra": {
+        "name": "室内回风温度"
+      },
+      "humidity_ra": {
+        "name": "室内回风湿度"
+      },
+      "pm25_ra": {
+        "name": "室内回风PM2.5"
+      },
+      "co2_ra": {
+        "name": "室内回风CO2"
+      },
+      "tvoc_ra": {
+        "name": "室内回风TVOC"
+      }
+    }
+  }
+}

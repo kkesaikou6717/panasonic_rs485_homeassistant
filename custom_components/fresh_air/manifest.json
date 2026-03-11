@@ -1,0 +1,31 @@
+{
+  "domain": "fresh_air",
+  "name": "新风系统",
+  "version": "1.0.0",
+  "documentation": "https://github.com/yourusername/fresh_air",
+  "issue_tracker": "https://github.com/yourusername/fresh_air/issues",
+  "config_flow": true,
+  "requirements": [
+    "pymodbus>=3.0.0"
+  ],
+  "codeowners": [
+    "@yourusername"
+  ],
+  "iot_class": "local_polling",
+  "dependencies": [],
+  "translations": {
+    "zh-Hans": {
+      "config": {
+        "step": {
+          "user": {
+            "data": {
+              "host": "网关地址",
+              "port": "端口",
+              "slave": "设备地址"
+            }
+          }
+        }
+      }
+    }
+  }
+}

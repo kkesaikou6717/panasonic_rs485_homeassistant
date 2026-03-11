@@ -1,0 +1,60 @@
+# Home Assistant 配置示例
+# 将以下内容添加到 configuration.yaml
+
+# 1. 如果使用YAML配置（已废弃，推荐使用UI配置）
+# fresh_air:
+#   host: 10.0.0.6
+#   port: 10123
+#   slave: 1
+
+# 2. HomeKit集成（添加到configuration.yaml）
+homekit:
+  - filter:
+      include_entities:
+        - climate.fresh_air
+        - sensor.fresh_air_回风温度
+        - sensor.fresh_air_回风湿度
+        - sensor.fresh_air_回风pm25
+        - sensor.fresh_air_回风co2
+
+# 3. 自动化示例：空气质量差时自动开启新风
+automation:
+  - alias: "空气质量差自动开启新风"
+    trigger:
+      - platform: state
+        entity_id: sensor.fresh_air_回风pm25
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.fresh_air_回风pm25
+        above: 100
+    action:
+      - service: climate.set_hvac_mode
+        target:
+          entity_id: climate.fresh_air
+        data:
+          hvac_mode: "fan_only"
+      - service: climate.set_fan_mode
+        target:
+          entity_id: climate.fresh_air
+        data:
+          fan_mode: "medium"
+
+  # 4. 定时同步时间（每天早上8点）
+  - alias: "同步新风系统时间"
+    trigger:
+      - platform: time
+        at: "08:00:00"
+    action:
+      - service: fresh_air.sync_time
+        data:
+          entity_id: climate.fresh_air
+
+# 5.  Lovelace卡片示例
+# type: entities
+# title: 新风系统
+# entities:
+#   - entity: climate.fresh_air
+#   - entity: sensor.fresh_air_回风温度
+#   - entity: sensor.fresh_air_回风湿度
+#   - entity: sensor.fresh_air_回风pm25
+#   - entity: sensor.fresh_air_回风co2
