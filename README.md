@@ -25,6 +25,7 @@
 ## 📋 硬件要求
 
 - 松下新风系统（支持 RS485/Modbus 协议）
+  - **已测试型号：** `FY-15ZJD2C`、`FY-25ZJD2C`、`FY-35ZJD2C`
 - Modbus TCP 网关（将 RS485 转换为 TCP）
 - Home Assistant 实例
 
@@ -162,6 +163,7 @@ custom_components/fresh_air/
 ## 📄 协议文档
 
 项目包含松下 RS485 通信协议文档：
+- [`RS485设置方法.pdf`](RS485设置方法.pdf) - RS485 设置方法说明文档
 - `rs485.csv` - 寄存器地址表（CSV 格式）
 - `rs485.xlsx` - 寄存器地址表（Excel 格式）
 
