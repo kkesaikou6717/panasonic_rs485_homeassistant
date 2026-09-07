@@ -9,6 +9,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 from .modbus_client import FreshAirModbusClient
@@ -27,20 +28,23 @@ async def async_setup_entry(
 
     entities = [
         PowerSwitch(coordinator, client, entry.entry_id),
-        VacationModeSwitch(client, entry.entry_id),
+        VacationModeSwitch(coordinator, client, entry.entry_id),
     ]
     async_add_entities(entities)
 
 
-class PowerSwitch(SwitchEntity):
+class PowerSwitch(CoordinatorEntity, SwitchEntity):
     """电源开关"""
 
     _attr_has_entity_name = True
     _attr_name = "电源"
     _attr_icon = "mdi:power"
 
-    def __init__(self, coordinator, client: FreshAirModbusClient, entry_id: str) -> None:
-        self.coordinator = coordinator
+    def __init__(
+        self, coordinator, client: FreshAirModbusClient, entry_id: str
+    ) -> None:
+        """初始化"""
+        super().__init__(coordinator)
         self._client = client
         self._attr_unique_id = f"{entry_id}_power"
         self._attr_device_info = {
@@ -51,10 +55,14 @@ class PowerSwitch(SwitchEntity):
         }
 
     @property
+    def data(self) -> dict:
+        """协调器数据"""
+        return self.coordinator.data or {}
+
+    @property
     def is_on(self) -> bool | None:
         """返回当前电源状态"""
-        data = self.coordinator.data or {}
-        run_status = data.get("run_status", 0)
+        run_status = self.data.get("run_status", 0)
         return run_status != 0
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -70,14 +78,18 @@ class PowerSwitch(SwitchEntity):
             await self.coordinator.async_request_refresh()
 
 
-class VacationModeSwitch(SwitchEntity):
+class VacationModeSwitch(CoordinatorEntity, SwitchEntity):
     """度假模式Switch"""
 
     _attr_has_entity_name = True
     _attr_name = "度假模式"
     _attr_icon = "mdi:island"
 
-    def __init__(self, client: FreshAirModbusClient, entry_id: str) -> None:
+    def __init__(
+        self, coordinator, client: FreshAirModbusClient, entry_id: str
+    ) -> None:
+        """初始化"""
+        super().__init__(coordinator)
         self._client = client
         self._attr_unique_id = f"{entry_id}_vacation_mode"
         self._attr_device_info = {
@@ -88,25 +100,28 @@ class VacationModeSwitch(SwitchEntity):
         }
 
     @property
+    def data(self) -> dict:
+        """协调器数据"""
+        return self.coordinator.data or {}
+
+    @property
     def is_on(self) -> bool | None:
         """返回当前度假模式状态"""
-        return self._client.vacation_mode
+        value = self.data.get("vacation_mode")
+        if value is None:
+            return None
+        return bool(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """开启度假模式"""
         success = await self._client.set_vacation_mode(True)
         if success:
             self._client.vacation_mode = True
-            self.async_write_ha_state()
+            await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """关闭度假模式"""
         success = await self._client.set_vacation_mode(False)
         if success:
             self._client.vacation_mode = False
-            self.async_write_ha_state()
-
-    async def async_update(self) -> None:
-        """更新状态"""
-        mode = await self._client.get_vacation_mode()
-        self._client.vacation_mode = mode
+            await self.coordinator.async_request_refresh()

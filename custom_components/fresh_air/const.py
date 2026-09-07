@@ -2,12 +2,6 @@
 常量定义
 """
 
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfTemperature,
-)
-
 # 域名
 DOMAIN = "fresh_air"
 

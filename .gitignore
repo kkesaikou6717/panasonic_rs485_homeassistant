@@ -1,48 +1,17 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
+.venv/
 
-# Home Assistant
-.storage/
-home-assistant_v2.db
-home-assistant.log
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Test artifacts
+# pytest
 .pytest_cache/
-.coverage
-htmlcov/
+tests/.pytest_cache/
 
-# Secrets (just in case)
-secrets.yaml
-*.key
-*.pem
+# Local history
+.waylog/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

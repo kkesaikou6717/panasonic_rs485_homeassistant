@@ -17,6 +17,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 
@@ -128,13 +129,12 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class FreshAirSensor(SensorEntity):
+class FreshAirSensor(CoordinatorEntity):
     """新风系统传感器实体"""
 
     def __init__(self, coordinator, config_entry, sensor_config) -> None:
         """初始化实体"""
-        super().__init__()
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._config = sensor_config
         self._key = sensor_config["key"]
 
@@ -154,11 +154,6 @@ class FreshAirSensor(SensorEntity):
         self._attr_state_class = sensor_config.get("state_class")
 
     @property
-    def available(self) -> bool:
-        """检查是否可用"""
-        return self.coordinator.last_update_success
-
-    @property
     def data(self) -> dict[str, Any]:
         """获取协调器数据"""
         return self.coordinator.data or {}
@@ -166,8 +161,7 @@ class FreshAirSensor(SensorEntity):
     @property
     def native_value(self) -> Optional[Any]:
         """获取传感器值"""
-        value = self.data.get(self._key)
-        return value
+        return self.data.get(self._key)
 
     @property
     def extra_state_attributes(self) -> dict:

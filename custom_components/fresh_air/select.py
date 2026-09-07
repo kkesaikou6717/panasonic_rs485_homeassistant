@@ -8,6 +8,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
@@ -68,7 +69,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class RunModeSelect(SelectEntity):
+class RunModeSelect(CoordinatorEntity, SelectEntity):
     """运行模式选择"""
 
     _attr_has_entity_name = True
@@ -76,7 +77,8 @@ class RunModeSelect(SelectEntity):
     _attr_icon = "mdi:hvac"
 
     def __init__(self, coordinator, client, entry_id: str) -> None:
-        self.coordinator = coordinator
+        """初始化"""
+        super().__init__(coordinator)
         self._client = client
         self._attr_unique_id = f"{entry_id}_run_mode"
         self._attr_options = RUN_MODE_OPTIONS
@@ -88,10 +90,14 @@ class RunModeSelect(SelectEntity):
         }
 
     @property
+    def data(self) -> dict:
+        """协调器数据"""
+        return self.coordinator.data or {}
+
+    @property
     def current_option(self) -> str | None:
         """获取当前运行模式"""
-        data = self.coordinator.data or {}
-        run_mode = data.get("run_mode", 0)
+        run_mode = self.data.get("run_mode", 0)
         return RUN_MODE_MAP.get(run_mode)
 
     async def async_select_option(self, option: str) -> None:
@@ -104,7 +110,7 @@ class RunModeSelect(SelectEntity):
             await self.coordinator.async_request_refresh()
 
 
-class FanSpeedSelect(SelectEntity):
+class FanSpeedSelect(CoordinatorEntity, SelectEntity):
     """风速选择"""
 
     _attr_has_entity_name = True
@@ -112,7 +118,8 @@ class FanSpeedSelect(SelectEntity):
     _attr_icon = "mdi:fan"
 
     def __init__(self, coordinator, client, entry_id: str) -> None:
-        self.coordinator = coordinator
+        """初始化"""
+        super().__init__(coordinator)
         self._client = client
         self._attr_unique_id = f"{entry_id}_fan_speed"
         self._attr_options = FAN_SPEED_OPTIONS
@@ -124,10 +131,14 @@ class FanSpeedSelect(SelectEntity):
         }
 
     @property
+    def data(self) -> dict:
+        """协调器数据"""
+        return self.coordinator.data or {}
+
+    @property
     def current_option(self) -> str | None:
         """获取当前风速"""
-        data = self.coordinator.data or {}
-        fan_speed = data.get("fan_speed", 0)
+        fan_speed = self.data.get("fan_speed", 0)
         return FAN_SPEED_MAP.get(fan_speed)
 
     async def async_select_option(self, option: str) -> None:

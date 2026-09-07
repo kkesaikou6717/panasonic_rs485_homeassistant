@@ -8,6 +8,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 
@@ -20,19 +21,22 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """设置button实体"""
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     client = hass.data[DOMAIN][entry.entry_id]["client"]
-    entity = SyncTimeButton(client, entry.entry_id)
+    entity = SyncTimeButton(coordinator, client, entry.entry_id)
     async_add_entities([entity])
 
 
-class SyncTimeButton(ButtonEntity):
+class SyncTimeButton(CoordinatorEntity, ButtonEntity):
     """同步时间按钮"""
 
     _attr_has_entity_name = True
     _attr_name = "同步时间"
     _attr_icon = "mdi:clock-sync"
 
-    def __init__(self, client, entry_id: str) -> None:
+    def __init__(self, coordinator, client, entry_id: str) -> None:
+        """初始化"""
+        super().__init__(coordinator)
         self._client = client
         self._attr_unique_id = f"{entry_id}_sync_time"
         self._attr_device_info = {

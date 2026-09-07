@@ -10,7 +10,10 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .const import (
     CONF_HOST,
@@ -35,27 +38,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     port = entry.data[CONF_PORT]
     slave = entry.data.get(CONF_SLAVE, 1)
 
-    # 创建Modbus客户端
+    # 创建Modbus客户端与数据协调器
     client = FreshAirModbusClient(host, port, slave)
-
-    # 创建协调器
-    coordinator = FreshAirCoordinator(hass, client)
+    coordinator = FreshAirCoordinator(hass, entry, client)
 
     # 存储到hass数据
+    # 首次刷新：网关不可达时抛出 ConfigEntryNotReady，由 HA 自动重试
+    await coordinator.async_config_entry_first_refresh()
+
+    # 刷新成功后才存储到 hass.data
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "client": client,
         "coordinator": coordinator,
     }
-
-    # 初始化连接
-    if not await client.connect():
-        _LOGGER.error("无法连接到Modbus网关")
-        return False
-
-    # 启动时间同步任务
+    # 启动自动时间同步
     coordinator.start_time_sync()
 
-    # 设置平台
+    # 设置平台（CoordinatorEntity 会在添加时订阅 coordinator，开启周期轮询）
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # 设置服务
@@ -66,13 +65,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """卸载配置入口"""
-    # 获取存储的数据
     data = hass.data[DOMAIN].get(entry.entry_id)
     if data:
         coordinator = data.get("coordinator")
         if coordinator:
-            coordinator.stop_time_sync()
-        
+            await coordinator.stop_time_sync()
+            await coordinator.async_shutdown()
+
         client = data.get("client")
         if client:
             await client.disconnect()
@@ -81,7 +80,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
 
     # 检查是否还有其他条目，如果没有则卸载服务
     if not hass.data.get(DOMAIN):
@@ -90,19 +89,30 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-class FreshAirCoordinator(DataUpdateCoordinator):
+class FreshAirCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """新风系统数据协调器"""
 
-    def __init__(self, hass: HomeAssistant, client: FreshAirModbusClient) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        client: FreshAirModbusClient,
+    ) -> None:
         """初始化协调器"""
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
+            config_entry=config_entry,
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
         self._client = client
         self._time_sync_task = None
+
+    @property
+    def client(self) -> FreshAirModbusClient:
+        """返回底层 Modbus 客户端"""
+        return self._client
 
     def start_time_sync(self) -> None:
         """启动自动时间同步"""
@@ -110,10 +120,14 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             self._time_sync_task = asyncio.create_task(self._time_sync_loop())
             _LOGGER.info("自动时间同步已启动")
 
-    def stop_time_sync(self) -> None:
+    async def stop_time_sync(self) -> None:
         """停止自动时间同步"""
         if self._time_sync_task is not None:
             self._time_sync_task.cancel()
+            try:
+                await self._time_sync_task
+            except asyncio.CancelledError:
+                pass
             self._time_sync_task = None
             _LOGGER.info("自动时间同步已停止")
 
@@ -123,7 +137,7 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             try:
                 # 等待同步间隔
                 await asyncio.sleep(TIME_SYNC_INTERVAL_HOURS * 3600)
-                
+
                 # 同步时间
                 _LOGGER.info("自动同步时间...")
                 success = await self._client.sync_time()
@@ -133,14 +147,13 @@ class FreshAirCoordinator(DataUpdateCoordinator):
                     _LOGGER.warning("自动时间同步失败")
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 _LOGGER.error("时间同步异常: %s", e)
 
     async def _async_update_data(self) -> dict[str, Any]:
         """更新数据"""
         try:
-            data = await self._client.read_all_sensors()
-            return data
-        except Exception as e:
+            return await self._client.read_all_sensors()
+        except Exception as e:  # pylint: disable=broad-except
             _LOGGER.error("更新数据失败: %s", e)
-            raise
+            raise UpdateFailed(f"Modbus数据更新失败: {e}") from e
