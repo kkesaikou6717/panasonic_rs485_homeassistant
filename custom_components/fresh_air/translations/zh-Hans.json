@@ -55,5 +55,11 @@
         "name": "室内回风TVOC"
       }
     }
+  },
+  "services": {
+    "sync_time": {
+      "name": "同步时间",
+      "description": "将 Home Assistant 主机的当前时间同步到新风机。"
+    }
   }
 }

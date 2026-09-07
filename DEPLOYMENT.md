@@ -26,6 +26,7 @@ custom_components/
     ├── select.py
     ├── button.py
     ├── services.py
+    ├── services.yaml
     └── translations/
         └── zh-Hans.json
 ```

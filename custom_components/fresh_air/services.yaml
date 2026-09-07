@@ -1,0 +1,7 @@
+# Home Assistant 要求集成注册服务时提供 services.yaml 描述文件
+# 否则调用/展示 fresh_air.sync_time 服务时会报
+# "Failed to load services.yaml for integration: fresh_air"
+
+sync_time:
+  # 该服务不需要任何参数
+  fields: {}
